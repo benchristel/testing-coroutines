@@ -47,8 +47,9 @@ func GetConfig() (string, error) {
 
 func RunCmdsFrom(generator func(chan Command)) (string, error) {
 	ch := make(chan Command)
-	var cmd, result Command
 	go generator(ch)
+
+	var cmd, result Command
 	for cmd = range ch {
 		result = cmd.Execute()
 		ch <- result
@@ -59,12 +60,15 @@ func RunCmdsFrom(generator func(chan Command)) (string, error) {
 func ReadConfigFiles(ch chan Command) {
 	defer close(ch)
 
-	ch <- ReadFileCommand{Path: "/tmp/.my-app.cfg"}
-	result := <-ch
+	result := await(ch, ReadFileCommand{Path: "/tmp/.my-app.cfg"})
 	if result.Error() == nil {
 		return
 	}
 
-	ch <- ReadFileCommand{Path: "/tmp/.my-app.default.cfg"}
-	_ = <-ch
+	await(ch, ReadFileCommand{Path: "/tmp/.my-app.default.cfg"})
+}
+
+func await(ch chan Command, cmd Command) Command {
+	ch <- cmd
+	return <-ch
 }
