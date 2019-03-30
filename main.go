@@ -6,9 +6,9 @@ import (
 )
 
 type Command interface {
-	Execute() Command
+	Data() string
 	Error() error
-	Result() string
+	Execute() Command
 }
 
 type ReadFileCommand struct {
@@ -17,18 +17,18 @@ type ReadFileCommand struct {
 	err          error
 }
 
-func (r *ReadFileCommand) Execute() Command {
+func (r ReadFileCommand) Execute() Command {
 	bytes, err := ioutil.ReadFile(r.Path)
 	r.err = err
 	r.fileContents = string(bytes)
 	return r
 }
 
-func (r *ReadFileCommand) Error() error {
+func (r ReadFileCommand) Error() error {
 	return r.err
 }
 
-func (r *ReadFileCommand) Result() string {
+func (r ReadFileCommand) Data() string {
 	return r.fileContents
 }
 
@@ -47,23 +47,24 @@ func GetConfig() (string, error) {
 
 func RunCmdsFrom(generator func(chan Command)) (string, error) {
 	ch := make(chan Command)
-	var cmd Command
+	var cmd, result Command
 	go generator(ch)
 	for cmd = range ch {
-		ch <- cmd.Execute()
+		result = cmd.Execute()
+		ch <- result
 	}
-	return cmd.Result(), cmd.Error()
+	return result.Data(), result.Error()
 }
 
 func ReadConfigFiles(ch chan Command) {
 	defer close(ch)
 
-	ch <- &ReadFileCommand{Path: "/tmp/.my-app.cfg"}
+	ch <- ReadFileCommand{Path: "/tmp/.my-app.cfg"}
 	result := <-ch
 	if result.Error() == nil {
 		return
 	}
 
-	ch <- &ReadFileCommand{Path: "/tmp/.my-app.default.cfg"}
+	ch <- ReadFileCommand{Path: "/tmp/.my-app.default.cfg"}
 	_ = <-ch
 }
