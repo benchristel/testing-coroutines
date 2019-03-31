@@ -5,6 +5,23 @@ import (
 	"io/ioutil"
 )
 
+/* ====================================================== *
+ * ENTRYPOINT
+ * ====================================================== */
+
+func main() {
+	config, err := GetConfig()
+	if err != nil {
+		fmt.Println("couldn't read config file")
+	} else {
+		fmt.Println("config file contents: " + config)
+	}
+}
+
+/* ====================================================== *
+ * TYPE DECLARATIONS
+ * ====================================================== */
+
 type Command interface {
 	Data() string
 	Error() error
@@ -32,20 +49,15 @@ func (r ReadFileCommand) Data() string {
 	return r.fileContents
 }
 
-func main() {
-	config, err := GetConfig()
-	if err != nil {
-		fmt.Println("couldn't read config file")
-	} else {
-		fmt.Println("Config file contents: " + config)
-	}
-}
+/* ====================================================== *
+ * ROUTINES
+ * ====================================================== */
 
 func GetConfig() (string, error) {
-	return RunCmdsFrom(ReadConfigFiles)
+	return RunCommandsFrom(ReadConfigFiles)
 }
 
-func RunCmdsFrom(generator func(chan Command)) (string, error) {
+func RunCommandsFrom(generator func(chan Command)) (string, error) {
 	ch := make(chan Command)
 	go generator(ch)
 

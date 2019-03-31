@@ -7,6 +7,44 @@ import (
 	"errors"
 )
 
+/* ====================================================== *
+ * FAKE VALUES
+ * ====================================================== */
+
+type FailedCommand struct {
+}
+
+func (FailedCommand) Data() string {
+	return ""
+}
+
+func (FailedCommand) Error() error {
+	return errors.New("command failed")
+}
+
+func (f FailedCommand) Execute() Command {
+	return f
+}
+
+type SuccessfulCommand struct {
+}
+
+func (s SuccessfulCommand) Data() string {
+	return ""
+}
+
+func (SuccessfulCommand) Error() error {
+	return nil
+}
+
+func (s SuccessfulCommand) Execute() Command {
+	return s
+}
+
+/* ====================================================== *
+ * TESTS
+ * ====================================================== */
+
 var _ = Describe("Reading config files", func() {
 	It("errors when neither config file is readable", func(done Done) {
 		ch := make(chan Command)
@@ -38,9 +76,7 @@ var _ = Describe("Reading config files", func() {
 			Path: "/tmp/.my-app.cfg",
 		}))
 
-		ch <- ReadFileCommand{
-			fileContents: "hi",
-		}
+		ch <- SuccessfulCommand{}
 
 		Expect(<-ch).To(BeNil())
 		Expect(ch).To(BeClosed())
@@ -62,9 +98,7 @@ var _ = Describe("Reading config files", func() {
 			Path: "/tmp/.my-app.default.cfg",
 		}))
 
-		ch <- ReadFileCommand{
-			fileContents: "hi",
-		}
+		ch <- SuccessfulCommand{}
 
 		Expect(<-ch).To(BeNil())
 		Expect(ch).To(BeClosed())
@@ -72,18 +106,3 @@ var _ = Describe("Reading config files", func() {
 		close(done)
 	})
 })
-
-type FailedCommand struct {
-}
-
-func (FailedCommand) Data() string {
-	return ""
-}
-
-func (FailedCommand) Error() error {
-	return errors.New("command failed")
-}
-
-func (f FailedCommand) Execute() Command {
-	return f
-}
