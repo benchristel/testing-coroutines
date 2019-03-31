@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"errors"
+	"io/ioutil"
 )
 
 /* ====================================================== *
@@ -104,5 +105,27 @@ var _ = Describe("Reading config files", func() {
 		Expect(ch).To(BeClosed())
 
 		close(done)
+	})
+})
+
+var _ = Describe("ReadFileCommand", func() {
+	It("errors when the file is not readable", func() {
+		result := ReadFileCommand{
+			Path: "/i-do-not-exist",
+		}.Execute()
+
+		Expect(result.Error()).To(HaveOccurred())
+		Expect(result.Data()).To(Equal(""))
+	})
+
+	It("succeeds when a readable file exists", func() {
+		ioutil.WriteFile("/tmp/test-file-deleteme", []byte("ok"), 0644)
+
+		result := ReadFileCommand{
+			Path: "/tmp/test-file-deleteme",
+		}.Execute()
+
+		Expect(result.Error()).To(BeNil())
+		Expect(result.Data()).To(Equal("ok"))
 	})
 })

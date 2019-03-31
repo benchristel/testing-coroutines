@@ -28,10 +28,33 @@ type Command interface {
 	Execute() Command
 }
 
+type NullCommand struct {
+}
+
+func (NullCommand) Data() string {
+	return ""
+}
+
+func (NullCommand) Error() error {
+	return nil
+}
+
+func (n NullCommand) Execute() Command {
+	return n
+}
+
 type ReadFileCommand struct {
 	Path         string
 	fileContents string
 	err          error
+}
+
+func (r ReadFileCommand) Data() string {
+	return r.fileContents
+}
+
+func (r ReadFileCommand) Error() error {
+	return r.err
 }
 
 func (r ReadFileCommand) Execute() Command {
@@ -39,14 +62,6 @@ func (r ReadFileCommand) Execute() Command {
 	r.err = err
 	r.fileContents = string(bytes)
 	return r
-}
-
-func (r ReadFileCommand) Error() error {
-	return r.err
-}
-
-func (r ReadFileCommand) Data() string {
-	return r.fileContents
 }
 
 /* ====================================================== *
@@ -61,8 +76,8 @@ func RunCommandsFrom(generator func(chan Command)) (string, error) {
 	ch := make(chan Command)
 	go generator(ch)
 
-	var cmd, result Command
-	for cmd = range ch {
+	var result Command = NullCommand{}
+	for cmd := range ch {
 		result = cmd.Execute()
 		ch <- result
 	}
