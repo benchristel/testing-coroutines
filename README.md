@@ -1,4 +1,4 @@
-# Mock-Free Testing of Coroutines
+# Mock-Free Testing of Side Effects
 
 This is an example repo that shows you how to test code that
 has side effects (i.e. depends on system calls)...
