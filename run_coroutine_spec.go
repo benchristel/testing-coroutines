@@ -44,9 +44,9 @@ func (s SystemCommand) Execute() Command {
  * TESTS
  * ====================================================== */
 
-var _ = Describe("Running a sequence of commands", func() {
+var _ = Describe("Running a coroutine", func() {
 	It("does nothing given a no-op command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(_ Await) {})
+		result, err := RunCoroutine(func(_ Await) {})
 		Expect(result).To(Equal(""))
 		Expect(err).To(BeNil())
 
@@ -54,7 +54,7 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("runs a successful command and returns the result", func(done Done) {
-		result, err := RunCommandsFrom(func(await Await) {
+		result, err := RunCoroutine(func(await Await) {
 			await(NewSystemCommand("echo", "hi"))
 		})
 		Expect(result).To(Equal("hi\n"))
@@ -64,7 +64,7 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("returns the result from the last command run", func(done Done) {
-		result, err := RunCommandsFrom(func(await Await) {
+		result, err := RunCoroutine(func(await Await) {
 			await(NewSystemCommand("echo", "hello"))
 			await(NewSystemCommand("echo", "goodbye"))
 		})
@@ -75,7 +75,7 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("returns the error from a failing command", func(done Done) {
-		result, err := RunCommandsFrom(func(await Await) {
+		result, err := RunCoroutine(func(await Await) {
 			await(NewSystemCommand("false"))
 		})
 		Expect(result).To(Equal(""))
@@ -85,7 +85,7 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("passes the output of a command back to the command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(await Await) {
+		result, err := RunCoroutine(func(await Await) {
 			result := await(NewSystemCommand("echo", "-n", "hi"))
 			await(NewSystemCommand("echo", "-n", "got result: "+result.Data()))
 		})
@@ -96,7 +96,7 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("passes the error from a command back to the command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(await Await) {
+		result, err := RunCoroutine(func(await Await) {
 			result := await(NewSystemCommand("false"))
 			if result.Error() != nil {
 				await(NewSystemCommand("echo", "-n", "this should work"))

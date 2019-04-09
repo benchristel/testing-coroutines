@@ -6,11 +6,11 @@ import (
 )
 
 /* ====================================================== *
- * ENTRYPOINT
+ * MAIN PROGRAM
  * ====================================================== */
 
 func main() {
-	config, err := GetConfig()
+	config, err := RunCoroutine(ReadConfigFiles)
 	if err != nil {
 		fmt.Println("couldn't read config file")
 	} else {
@@ -18,8 +18,15 @@ func main() {
 	}
 }
 
+func ReadConfigFiles(await Await) {
+	result := await(ReadFileCommand{Path: "/tmp/.my-app.cfg"})
+	if result.Error() != nil {
+		await(ReadFileCommand{Path: "/tmp/.my-app.default.cfg"})
+	}
+}
+
 /* ====================================================== *
- * TYPE DECLARATIONS
+ * (LIBRARY) TYPE DECLARATIONS
  * ====================================================== */
 
 type Command interface {
@@ -65,14 +72,10 @@ func (r ReadFileCommand) Execute() Command {
 }
 
 /* ====================================================== *
- * ROUTINES
+ * LIBRARY ROUTINES
  * ====================================================== */
 
-func GetConfig() (string, error) {
-	return RunCommandsFrom(ReadConfigFiles)
-}
-
-func RunCommandsFrom(generator func(Await)) (string, error) {
+func RunCoroutine(generator func(Await)) (string, error) {
 	ch := StartCoroutine(generator)
 
 	var result Command = NullCommand{}
@@ -90,15 +93,6 @@ func StartCoroutine(generator func(Await)) chan Command {
 		generator(makeAwaitFunc(ch))
 	}()
 	return ch
-}
-
-func ReadConfigFiles(await Await) {
-	result := await(ReadFileCommand{Path: "/tmp/.my-app.cfg"})
-	if result.Error() == nil {
-		return
-	}
-
-	await(ReadFileCommand{Path: "/tmp/.my-app.default.cfg"})
 }
 
 type Await func(Command) Command
