@@ -46,9 +46,7 @@ func (s SystemCommand) Execute() Command {
 
 var _ = Describe("Running a sequence of commands", func() {
 	It("does nothing given a no-op command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			close(ch)
-		})
+		result, err := RunCommandsFrom(func(_ Await) {})
 		Expect(result).To(Equal(""))
 		Expect(err).To(BeNil())
 
@@ -56,10 +54,8 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("runs a successful command and returns the result", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			ch <- NewSystemCommand("echo", "hi")
-			<-ch
-			close(ch)
+		result, err := RunCommandsFrom(func(await Await) {
+			await(NewSystemCommand("echo", "hi"))
 		})
 		Expect(result).To(Equal("hi\n"))
 		Expect(err).To(BeNil())
@@ -68,12 +64,9 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("returns the result from the last command run", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			ch <- NewSystemCommand("echo", "hello")
-			<-ch
-			ch <- NewSystemCommand("echo", "goodbye")
-			<-ch
-			close(ch)
+		result, err := RunCommandsFrom(func(await Await) {
+			await(NewSystemCommand("echo", "hello"))
+			await(NewSystemCommand("echo", "goodbye"))
 		})
 		Expect(result).To(Equal("goodbye\n"))
 		Expect(err).To(BeNil())
@@ -82,10 +75,8 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("returns the error from a failing command", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			ch <- NewSystemCommand("false")
-			<-ch
-			close(ch)
+		result, err := RunCommandsFrom(func(await Await) {
+			await(NewSystemCommand("false"))
 		})
 		Expect(result).To(Equal(""))
 		Expect(err).To(HaveOccurred())
@@ -94,12 +85,9 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("passes the output of a command back to the command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			ch <- NewSystemCommand("echo", "-n", "hi")
-			result := <-ch
-			ch <- NewSystemCommand("echo", "-n", "got result: "+result.Data())
-			<-ch
-			close(ch)
+		result, err := RunCommandsFrom(func(await Await) {
+			result := await(NewSystemCommand("echo", "-n", "hi"))
+			await(NewSystemCommand("echo", "-n", "got result: "+result.Data()))
 		})
 		Expect(result).To(Equal("got result: hi"))
 		Expect(err).To(BeNil())
@@ -108,14 +96,11 @@ var _ = Describe("Running a sequence of commands", func() {
 	})
 
 	It("passes the error from a command back to the command generator", func(done Done) {
-		result, err := RunCommandsFrom(func(ch chan Command) {
-			ch <- NewSystemCommand("false")
-			result := <-ch
+		result, err := RunCommandsFrom(func(await Await) {
+			result := await(NewSystemCommand("false"))
 			if result.Error() != nil {
-				ch <- NewSystemCommand("echo", "-n", "this should work")
-				<-ch
+				await(NewSystemCommand("echo", "-n", "this should work"))
 			}
-			close(ch)
 		})
 		Expect(result).To(Equal("this should work"))
 		Expect(err).To(BeNil())

@@ -72,9 +72,8 @@ func GetConfig() (string, error) {
 	return RunCommandsFrom(ReadConfigFiles)
 }
 
-func RunCommandsFrom(generator func(chan Command)) (string, error) {
-	ch := make(chan Command)
-	go generator(ch)
+func RunCommandsFrom(generator func(Await)) (string, error) {
+	ch := StartCoroutine(generator)
 
 	var result Command = NullCommand{}
 	for cmd := range ch {
@@ -84,18 +83,29 @@ func RunCommandsFrom(generator func(chan Command)) (string, error) {
 	return result.Data(), result.Error()
 }
 
-func ReadConfigFiles(ch chan Command) {
-	defer close(ch)
+func StartCoroutine(generator func(Await)) chan Command {
+	ch := make(chan Command)
+	go func() {
+		defer close(ch)
+		generator(makeAwaitFunc(ch))
+	}()
+	return ch
+}
 
-	result := await(ch, ReadFileCommand{Path: "/tmp/.my-app.cfg"})
+func ReadConfigFiles(await Await) {
+	result := await(ReadFileCommand{Path: "/tmp/.my-app.cfg"})
 	if result.Error() == nil {
 		return
 	}
 
-	await(ch, ReadFileCommand{Path: "/tmp/.my-app.default.cfg"})
+	await(ReadFileCommand{Path: "/tmp/.my-app.default.cfg"})
 }
 
-func await(ch chan Command, cmd Command) Command {
-	ch <- cmd
-	return <-ch
+type Await func(Command) Command
+
+func makeAwaitFunc(ch chan Command) Await {
+	return func(cmd Command) Command {
+		ch <- cmd
+		return <-ch
+	}
 }

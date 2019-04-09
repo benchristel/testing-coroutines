@@ -48,8 +48,7 @@ func (s SuccessfulCommand) Execute() Command {
 
 var _ = Describe("Reading config files", func() {
 	It("errors when neither config file is readable", func(done Done) {
-		ch := make(chan Command)
-		go ReadConfigFiles(ch)
+		ch := StartCoroutine(ReadConfigFiles)
 
 		Expect(<-ch).To(Equal(ReadFileCommand{
 			Path: "/tmp/.my-app.cfg",
@@ -70,8 +69,7 @@ var _ = Describe("Reading config files", func() {
 	})
 
 	It("reads only the custom config if it is present", func(done Done) {
-		ch := make(chan Command)
-		go ReadConfigFiles(ch)
+		ch := StartCoroutine(ReadConfigFiles)
 
 		Expect(<-ch).To(Equal(ReadFileCommand{
 			Path: "/tmp/.my-app.cfg",
@@ -86,8 +84,7 @@ var _ = Describe("Reading config files", func() {
 	})
 
 	It("falls back to the default config", func(done Done) {
-		ch := make(chan Command)
-		go ReadConfigFiles(ch)
+		ch := StartCoroutine(ReadConfigFiles)
 
 		Expect(<-ch).To(Equal(ReadFileCommand{
 			Path: "/tmp/.my-app.cfg",
